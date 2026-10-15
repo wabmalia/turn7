@@ -54,6 +54,12 @@
     }
   }
 
+  /** "Me" first, then everyone else in seat order after me (same order as the table). */
+  function targetOrder(options: string[]): string[] {
+    const seats = [me, ...others].flatMap((p) => (p ? [p.id] : []));
+    return seats.filter((id) => options.includes(id));
+  }
+
   const ready = $derived(mine?.kind === 'cards' && selected.length === mine.count);
 
   function describe(p: Prompt): string {
@@ -156,7 +162,7 @@
             </p>
           </div>
           <div class="buttons wrap">
-            {#each mine.options as id (id)}
+            {#each targetOrder(mine.options) as id (id)}
               <button onclick={() => session.act({ t: 'player', target: id })}>
                 {id === session.me ? 'Me' : name(id)}
               </button>

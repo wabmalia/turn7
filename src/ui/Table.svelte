@@ -26,7 +26,6 @@
 
   let selected = $state<CardId[]>([]);
   let showRules = $state(false);
-  let showLog = $state(false);
 
   // Fresh selection for every new decision. Keyed by content, since every
   // room update from the host is a brand new object.
@@ -86,7 +85,6 @@
   }
 
   const recentLog = $derived(g.log.slice(-40).reverse());
-  const lastEvent = $derived(g.log[g.log.length - 1] ?? '');
 </script>
 
 <div class="table">
@@ -95,7 +93,6 @@
     <span class="muted">Round {g.round}</span>
     <span class="muted deck" title="Cards left in the deck">🂠 {g.deckCount}</span>
     <span class="spacer"></span>
-    <button class="ghost" onclick={() => (showLog = !showLog)} aria-expanded={showLog}>Log</button>
     <button class="ghost" onclick={() => (showRules = true)}>Rules</button>
     <button class="ghost" onclick={() => confirm(session.role === 'host' ? 'Close the room for everyone?' : 'Leave the game?') && session.leave()}>Leave</button>
   </header>
@@ -121,23 +118,9 @@
         />
       {/each}
     </div>
-
-    {#if showLog}
-      <aside class="panel log" aria-label="Game log">
-        <ol>
-          {#each recentLog as line, i (g.log.length - i)}
-            <li>{line}</li>
-          {/each}
-        </ol>
-      </aside>
-    {/if}
   </div>
 
   <div class="dock">
-    {#if roundOver}
-      <RoundResults game={g} />
-    {/if}
-
     {#if me}
       <PlayerArea
         player={me}
@@ -153,8 +136,11 @@
       />
     {/if}
 
-    {#if !roundOver}
-      <div class="panel actions" aria-live="polite">
+    <div class="console">
+    {#if roundOver}
+      <div class="main"><RoundResults game={g} /></div>
+    {:else}
+      <div class="panel actions main" aria-live="polite">
         {#if mine?.kind === 'turn'}
           <p class="title">Your turn</p>
           <div class="buttons">
@@ -209,9 +195,16 @@
         {:else if prompt}
           <p class="muted">{describe(prompt)}…</p>
         {/if}
-        <p class="last muted small">{lastEvent}</p>
       </div>
     {/if}
+      <aside class="panel log" aria-label="Game log">
+        <ol>
+          {#each recentLog as line, i (g.log.length - i)}
+            <li class:latest={i === 0}>{line}</li>
+          {/each}
+        </ol>
+      </aside>
+    </div>
 
     {#if isPlayer}
       <div class="emojis" role="group" aria-label="Reactions">
@@ -280,12 +273,23 @@
     gap: 0.75rem;
     min-width: 0;
   }
+  .console {
+    display: grid;
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    gap: 0.5rem;
+    align-items: stretch;
+  }
+  .main {
+    min-width: 0;
+  }
   .log {
-    width: 280px;
-    max-height: 60vh;
+    height: 12rem;
     overflow-y: auto;
     padding: 0.5rem 0.75rem;
     font-size: 0.85rem;
+  }
+  .log li.latest {
+    font-weight: 700;
   }
   .log ol {
     list-style: none;
@@ -337,11 +341,6 @@
   .small {
     font-size: 0.85rem;
   }
-  .last {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
   .emojis {
     display: flex;
     justify-content: center;
@@ -360,9 +359,11 @@
       flex-direction: column-reverse;
       align-items: stretch;
     }
+    .console {
+      grid-template-columns: 1fr;
+    }
     .log {
-      width: auto;
-      max-height: 30vh;
+      height: 7rem;
     }
     .deck {
       display: none;

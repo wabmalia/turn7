@@ -160,7 +160,7 @@ export function apply(state: GameState, playerId: PlayerId, action: GameAction):
         s.stack.push({ t: 'draw', player: playerId });
       } else {
         me.status = 'stayed';
-        log(s, `${me.name} stays`);
+        log(s, `${me.name} stayed`);
       }
       break;
     }
@@ -225,7 +225,7 @@ function startRound(s: GameState) {
   s.results = null;
   s.stack = [];
   s.prompt = null;
-  log(s, `Round ${s.round}: ${s.players[s.dealer]!.name} deals`);
+  log(s, `Round ${s.round} started, ${s.players[s.dealer]!.name} dealt`);
   run(s);
 }
 
@@ -272,7 +272,7 @@ function endRound(s: GameState) {
   s.prompt = null;
   s.paused = false;
 
-  for (const id of s.flip7) log(s, `${player(s, id).name} FLIPS 7!`);
+  for (const id of s.flip7) log(s, `${player(s, id).name} FLIPPED 7!`);
   s.results = s.players.map((p) => scorePlayer(p, s.flip7.includes(p.id)));
   for (const r of s.results) player(s, r.player).total += r.score;
 
@@ -280,7 +280,7 @@ function endRound(s: GameState) {
   if (best >= s.target) {
     s.phase = 'gameOver';
     s.winners = s.players.filter((p) => p.total === best).map((p) => p.id);
-    log(s, `Game over: ${s.winners.map((id) => player(s, id).name).join(' & ')} wins with ${best}`);
+    log(s, `Game over: ${s.winners.map((id) => player(s, id).name).join(' & ')} won with ${best}`);
   } else {
     s.phase = 'roundEnd';
   }
@@ -296,7 +296,7 @@ function process(s: GameState, task: Task) {
       if (p.status === 'busted') return;
       const c = draw(s);
       if (!c) return outOfCards(s, p);
-      log(s, `${p.name} flips ${cardLabel(c)}`);
+      log(s, `${p.name} flipped ${cardLabel(c)}`);
       if (c.kind === 'act') s.stack.push({ t: 'act', player: p.id, card: c });
       else if (c.kind === 'mod') s.stack.push({ t: 'mod', player: p.id, card: c });
       else receive(s, p, c);
@@ -305,7 +305,7 @@ function process(s: GameState, task: Task) {
     case 'forceStay': {
       if (p.status === 'active') {
         p.status = 'stayed';
-        log(s, `${p.name} must stay`);
+        log(s, `${p.name} had to stay`);
       }
       return;
     }
@@ -324,7 +324,7 @@ function process(s: GameState, task: Task) {
         s.stack.push({ ...task, left: 0 });
         return;
       }
-      log(s, `${p.name} flips ${cardLabel(c)} (Flip Four ${5 - task.left}/4)`);
+      log(s, `${p.name} flipped ${cardLabel(c)} (Flip Four ${5 - task.left}/4)`);
       const aside = [...task.aside];
       if (c.kind === 'num') {
         receive(s, p, c);
@@ -413,25 +413,25 @@ function applyAct(s: GameState, p: Player, card: ActCard, cards: CardId[], targe
   switch (card.act) {
     case 'justOneMore': {
       const t = player(s, target!);
-      log(s, `${p.name} plays Just One More! on ${t.name}`);
+      log(s, `${p.name} played Just One More! on ${t.name}`);
       s.stack.push({ t: 'forceStay', player: t.id }, { t: 'draw', player: t.id });
       return;
     }
     case 'flipFour': {
       const t = player(s, target!);
-      log(s, `${p.name} plays Flip Four! on ${t.name}`);
+      log(s, `${p.name} played Flip Four! on ${t.name}`);
       s.stack.push({ t: 'flipFour', player: t.id, left: 4, aside: [] });
       return;
     }
     case 'steal': {
       const [from, c] = takeCard(s, cards[0]!);
-      log(s, `${p.name} steals ${cardLabel(c)} from ${from.name}`);
+      log(s, `${p.name} stole ${cardLabel(c)} from ${from.name}`);
       receive(s, p, c);
       return;
     }
     case 'discard': {
       const [from, c] = takeCard(s, cards[0]!);
-      log(s, `${p.name} discards ${from.name}'s ${cardLabel(c)}`);
+      log(s, `${p.name} discarded ${from.name}'s ${cardLabel(c)}`);
       s.discard.push(c);
       return;
     }
@@ -439,7 +439,7 @@ function applyAct(s: GameState, p: Player, card: ActCard, cards: CardId[], targe
       // Both cards leave first, then both arrive: the swap is simultaneous.
       const [a, ca] = takeCard(s, cards[0]!);
       const [b, cb] = takeCard(s, cards[1]!);
-      log(s, `${p.name} swaps ${a.name}'s ${cardLabel(ca)} with ${b.name}'s ${cardLabel(cb)}`);
+      log(s, `${p.name} swapped ${a.name}'s ${cardLabel(ca)} with ${b.name}'s ${cardLabel(cb)}`);
       receive(s, a, cb);
       receive(s, b, ca);
       return;
@@ -461,7 +461,7 @@ function forced(
 
 function giveMod(s: GameState, from: Player, card: ModCard, to: PlayerId) {
   const t = player(s, to);
-  log(s, from.id === to ? `${from.name} keeps ${cardLabel(card)}` : `${from.name} gives ${cardLabel(card)} to ${t.name}`);
+  log(s, from.id === to ? `${from.name} kept ${cardLabel(card)}` : `${from.name} gave ${cardLabel(card)} to ${t.name}`);
   receive(s, t, card);
 }
 
@@ -475,7 +475,7 @@ function receive(s: GameState, p: Player, c: NumCard | ModCard) {
     return;
   }
   if (c.special === 'unlucky7') {
-    if (p.line.length) log(s, `Unlucky 7! ${p.name} discards their line`);
+    if (p.line.length) log(s, `Unlucky 7! ${p.name} discarded their line`);
     s.discard.push(...p.line);
     p.line = [c];
     return;
@@ -484,7 +484,7 @@ function receive(s: GameState, p: Player, c: NumCard | ModCard) {
   const lucky = c.value === 13 && (c.special === 'lucky13' || hasSpecial(p, 'lucky13'));
   p.line.push(c);
   if (same + 1 > (lucky ? 2 : 1)) {
-    if (p.status !== 'busted') log(s, `${p.name} BUSTS on ${cardLabel(c)}`);
+    if (p.status !== 'busted') log(s, `${p.name} BUSTED on ${cardLabel(c)}`);
     p.status = 'busted';
     return;
   }
@@ -492,10 +492,10 @@ function receive(s: GameState, p: Player, c: NumCard | ModCard) {
 }
 
 function outOfCards(s: GameState, p: Player) {
-  log(s, 'No cards left to draw');
+  log(s, 'There were no cards left to draw');
   if (p.status === 'active') {
     p.status = 'stayed';
-    log(s, `${p.name} must stay`);
+    log(s, `${p.name} had to stay`);
   }
 }
 

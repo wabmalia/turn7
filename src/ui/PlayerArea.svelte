@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { CardId } from '../engine/cards';
+  import type { Card as CardT, CardId } from '../engine/cards';
   import type { Player } from '../engine/game';
   import { scorePlayer } from '../engine/score';
   import type { Reaction } from '../net/session.svelte';
@@ -14,6 +14,7 @@
     flip7 = false,
     selectable = new Set<CardId>(),
     selected = [],
+    aside = [],
     reactions = [],
     onpick,
   }: {
@@ -25,6 +26,8 @@
     flip7?: boolean;
     selectable?: Set<CardId>;
     selected?: CardId[];
+    /** Flip Four cards waiting to resolve after the flips. */
+    aside?: CardT[];
     reactions?: Reaction[];
     onpick?: (id: CardId) => void;
   } = $props();
@@ -62,6 +65,15 @@
       <p class="empty muted">No cards</p>
     {/each}
   </div>
+
+  {#if aside.length}
+    <div class="row aside" aria-label="Waiting to resolve">
+      <span class="muted small">Up next:</span>
+      {#each aside as c (c.id)}
+        <Card small card={c} />
+      {/each}
+    </div>
+  {/if}
 
   <div class="reactions" aria-live="polite">
     {#each reactions as r (r.key)}
@@ -147,8 +159,16 @@
     min-height: 74px;
     align-items: center;
   }
-  .mods {
+  .mods,
+  .aside {
     min-height: 0;
+  }
+  .aside {
+    padding-top: 0.4rem;
+    border-top: 1px dashed var(--border);
+  }
+  .small {
+    font-size: 0.8rem;
   }
   .empty {
     margin: 0;

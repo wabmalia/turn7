@@ -59,6 +59,7 @@
 
   function describe(p: Prompt): string {
     const who = name(p.player);
+    if (p.kind === 'ack') return p.text;
     if (p.kind === 'turn') return `${who} is deciding: hit or stay`;
     if (p.kind === 'player') {
       if (p.card.kind === 'mod') return `${who} is choosing who gets ${cardLabel(p.card)}`;
@@ -72,6 +73,16 @@
     if (p.card.act === 'swap') return 'Pick two face-up cards from two different players to swap';
     if (p.card.act === 'steal') return 'Pick a card to steal into your line';
     return 'Pick any face-up card to discard';
+  }
+
+  // Flip Four in progress: the top-most flipFour task on the stack.
+  const flipping = $derived([...g.stack].reverse().find((t) => t.t === 'flipFour'));
+
+  /** Cards set aside during Flip Four, waiting to resolve, per player. */
+  function asideOf(id: string) {
+    return g.stack.flatMap((t) =>
+      t.player !== id ? [] : t.t === 'flipFour' ? t.aside : t.t === 'aside' ? t.cards : [],
+    );
   }
 
   const recentLog = $derived(g.log.slice(-40).reverse());
@@ -104,6 +115,7 @@
           flip7={g.flip7.includes(p.id)}
           {selectable}
           {selected}
+          aside={asideOf(p.id)}
           reactions={session.reactions.filter((r) => r.from === p.id)}
           onpick={pick}
         />
@@ -135,6 +147,7 @@
         flip7={g.flip7.includes(me.id)}
         {selectable}
         {selected}
+        aside={asideOf(me.id)}
         reactions={session.reactions.filter((r) => r.from === me.id)}
         onpick={pick}
       />
@@ -174,6 +187,20 @@
             </button>
             {#if selected.length}<button class="ghost" onclick={() => (selected = [])}>Clear</button>{/if}
           </div>
+        {:else if mine?.kind === 'ack'}
+          <div class="pending">
+            <Card small card={mine.card} />
+            <p class="title">{mine.text}</p>
+          </div>
+          <button class="primary" onclick={() => session.act({ t: 'ack' })}>OK</button>
+        {:else if prompt?.kind === 'ack'}
+          <div class="pending">
+            <Card small card={prompt.card} />
+            <p class="title">{prompt.text}</p>
+          </div>
+          <p class="muted small">Waiting for {name(prompt.player)} to continue…</p>
+        {:else if g.paused && flipping?.t === 'flipFour'}
+          <p class="title">{name(flipping.player)} is flipping four… {4 - flipping.left}/4</p>
         {:else if prompt}
           <p class="muted">{describe(prompt)}…</p>
         {/if}

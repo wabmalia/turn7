@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildDeck, DECK_SIZE, type Act, type Card, type Mod } from './cards';
-import { apply, createGame, player, type GameAction, type GameState } from './game';
+import { advance, apply, createGame, player, type GameAction, type GameState } from './game';
 import { scorePlayer } from './score';
 import { botAction } from './bot';
 import { nextRandom } from './rng';
@@ -17,15 +17,22 @@ const act = (a: Act): Card => ({ id: nextId++, kind: 'act', act: a });
 /** Players A, B, C with C dealing, so the deal and turns start at A. */
 function game(deck: Card[], names = ['A', 'B', 'C'], target = 200): GameState {
   const players = names.map((id) => ({ id, name: id }));
-  return createGame(players, { seed: 1, deck, dealer: names.length - 1, target });
+  return settle(createGame(players, { seed: 1, deck, dealer: names.length - 1, target }));
+}
+
+/** Skip through Flip Four pauses, like the host's timer does. */
+function settle(s: GameState): GameState {
+  while (s.paused) s = advance(s);
+  return s;
 }
 
 function play(s: GameState, who: string, ...actions: GameAction[]): GameState {
-  for (const a of actions) s = apply(s, who, a);
+  for (const a of actions) s = settle(apply(s, who, a));
   return s;
 }
 const HIT: GameAction = { t: 'hit' };
 const STAY: GameAction = { t: 'stay' };
+const OK: GameAction = { t: 'ack' };
 const target = (id: string): GameAction => ({ t: 'player', target: id });
 const pickCards = (...cards: Card[]): GameAction => ({ t: 'cards', cards: cards.map((c) => c.id) });
 const values = (s: GameState, id: string) =>
@@ -210,6 +217,8 @@ describe('Unlucky 7', () => {
     let s = game([n(3), n(5), act('flipFour'), mod('m2'), act('steal'), u7(), n(10)]);
     s = play(s, 'C', target('B'));
     // The 5 and the set-aside -2 are gone; the Steal still resolves (A's 3 is the only option).
+    expect(s.prompt).toMatchObject({ kind: 'ack', player: 'B', text: "Steal: the only card to steal is A's 3" });
+    s = play(s, 'B', OK);
     expect(values(s, 'B')).toEqual([7, 10, 3]);
     expect(s.discard.some((c) => c.kind === 'mod' && c.mod === 'm2')).toBe(true);
   });
@@ -282,8 +291,10 @@ describe('modifiers', () => {
     let s = game([n(5), n(6), n(5), mod('m2')], ['A', 'B']);
     s = play(s, 'A', HIT); // A busts
     s = play(s, 'B', HIT); // B flips -2 and must keep it
+    expect(s.prompt).toMatchObject({ kind: 'ack', player: 'B', text: 'B must keep -2: everyone else has busted' });
+    expect(() => apply(s, 'B', HIT)).toThrow('Click OK');
+    s = play(s, 'B', OK);
     expect(values(s, 'B')).toEqual([6, 'm2']);
-    expect(s.log).toContain('B must keep -2: everyone else has busted');
   });
 });
 
@@ -292,13 +303,20 @@ describe('actions', () => {
     let s = game([n(5), n(6), n(5), act('flipFour'), n(1), n(2), n(3), n(4)], ['A', 'B']);
     s = play(s, 'A', HIT); // A busts
     s = play(s, 'B', HIT); // B flips Flip Four, must target self
+    expect(s.prompt).toMatchObject({ kind: 'ack', text: 'B is the only player left, so Flip Four! must be played on them' });
+    s = play(s, 'B', OK);
     expect(values(s, 'B')).toEqual([6, 1, 2, 3, 4]);
   });
 
   it('are discarded with no effect when there is no legal target', () => {
-    const s = game([act('steal'), n(1), n(2)]);
-    expect(s.log).toContain('Steal has no target and is discarded');
+    let s = game([act('steal'), n(1), n(2)]);
+    // Shown to everyone with the card; dealing waits until A clicks OK.
+    expect(s.prompt).toMatchObject({ kind: 'ack', player: 'A', card: { act: 'steal' }, text: 'Steal: there are no face-up cards to steal' });
+    expect(values(s, 'B')).toEqual([]);
+    s = play(s, 'A', OK);
     expect(values(s, 'A')).toEqual([]);
+    expect(values(s, 'B')).toEqual([1]);
+    expect(s.discard.map((c) => c.kind)).toEqual(['act']);
   });
 
   it('a stayed player resolves an action without re-entering', () => {
@@ -345,6 +363,24 @@ describe('Just One More!', () => {
 });
 
 describe('Flip Four!', () => {
+  it('pauses after each card so players can follow along', () => {
+    let s = createGame([{ id: 'A', name: 'A' }, { id: 'B', name: 'B' }], {
+      seed: 1,
+      dealer: 1,
+      deck: [act('flipFour'), n(1), n(2), n(3), n(4), n(9)],
+    });
+    s = apply(s, 'A', target('B'));
+    const seen: number[] = [];
+    while (s.paused) {
+      seen.push(player(s, 'B').line.length);
+      expect(s.prompt).toBeNull();
+      expect(() => apply(s, 'B', HIT)).toThrow();
+      s = advance(s);
+    }
+    expect(seen).toEqual([1, 2, 3, 4]);
+    expect(s.prompt).toMatchObject({ kind: 'turn', player: 'A' });
+  });
+
   it('resolves set-aside actions and modifiers after the four flips, in order', () => {
     let s = game([act('flipFour'), n(1), mod('m6'), act('swap'), n(2), n(9), n(10)]);
     s = play(s, 'A', target('B'));
@@ -352,8 +388,9 @@ describe('Flip Four!', () => {
     expect(values(s, 'B')).toEqual([1, 2]);
     expect(s.prompt).toMatchObject({ kind: 'player', player: 'B', card: { mod: 'm6' } });
     s = play(s, 'B', target('B'));
-    // Then the Swap: only B has cards, so it fizzles.
-    expect(s.log).toContain('Swap has no target and is discarded');
+    // Then the Swap: only B has cards, so it fizzles once B clicks OK.
+    expect(s.prompt).toMatchObject({ kind: 'ack', text: 'Swap: needs face-up cards from two different players' });
+    s = play(s, 'B', OK);
     expect(values(s, 'B')).toEqual([1, 2, 'm6', 9]);
   });
 
@@ -369,6 +406,7 @@ describe('Flip Four!', () => {
   it('a Flip 7 mid-sequence ends the round and drops set-aside cards', () => {
     let s = game([n(1), n(2), n(3), n(4), n(5), act('flipFour'), mod('m2'), n(6), n(7), n(8)], ['A']);
     for (let i = 0; i < 5; i++) s = play(s, 'A', HIT);
+    s = play(s, 'A', OK); // solo: Flip Four must be played on yourself
     expect(s.phase).toBe('roundEnd');
     expect(s.flip7).toEqual(['A']);
     expect(s.results![0]!.minus).toBe(0);
@@ -405,7 +443,8 @@ describe('Steal', () => {
     s = play(s, 'A', STAY);
     s = play(s, 'B', HIT); // B busts
     s = play(s, 'C', HIT);
-    // Only A's 5 is stealable, so it resolves automatically.
+    // Only A's 5 is stealable, so it resolves once C clicks OK.
+    s = play(s, 'C', OK);
     expect(values(s, 'C')).toEqual([8, 5]);
   });
 
@@ -414,7 +453,7 @@ describe('Steal', () => {
     s = play(s, 'A', HIT); // 2
     s = play(s, 'B', STAY);
     for (let i = 0; i < 4; i++) s = play(s, 'A', HIT); // 3, 4, 5, 6
-    s = play(s, 'A', HIT); // Steal: B's 7 is the only option
+    s = play(s, 'A', HIT, OK); // Steal: B's 7 is the only option
     expect(s.phase).toBe('roundEnd');
     expect(s.flip7).toEqual(['A']);
   });
@@ -494,6 +533,10 @@ describe('simulation', () => {
         expect(countCards(s)).toBe(DECK_SIZE);
         if (s.phase === 'roundEnd') {
           s = apply(s, 'p0', { t: 'nextRound' });
+          continue;
+        }
+        if (s.paused) {
+          s = advance(s);
           continue;
         }
         const who = s.prompt!.player;

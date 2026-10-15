@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { createGame, apply } from '../engine/game';
 import { HostRoom, type Link } from './host';
 import type { RoomView, ToClient } from './protocol';
 
@@ -107,6 +108,33 @@ describe('HostRoom', () => {
     h.message({ t: 'react', emoji: '🔥' });
     h.message({ t: 'react', emoji: 'my phone is 555-1234' });
     expect(l.inbox.filter((m) => m.t === 'react')).toEqual([{ t: 'react', from: 'p1', emoji: '🔥' }]);
+  });
+
+  it('steps through Flip Four pauses on a timer, also after a host refresh', () => {
+    vi.useFakeTimers();
+    const players = [
+      { id: 'host', name: 'Hosty' },
+      { id: 'p1', name: 'Ana' },
+    ];
+    let id = 500;
+    const num = (value: number) => ({ id: id++, kind: 'num' as const, value });
+    const deck = [{ id: id++, kind: 'act' as const, act: 'flipFour' as const }, num(1), num(2), num(3), num(4), num(9)];
+    const game = apply(createGame(players, { seed: 1, dealer: 1, deck }), 'host', { t: 'player', target: 'p1' });
+    expect(game.paused).toBe(true);
+    // Resuming a saved, paused room keeps the flips going.
+    const r = new HostRoom(
+      { code: 'ABCDE', hostId: 'host', members: players, game },
+      { change: () => {}, react: () => {}, persist: () => {} },
+      1000,
+      900,
+    );
+    const lengths: number[] = [];
+    while (r.snapshot().game!.paused) {
+      lengths.push(r.snapshot().game!.players[1]!.line.length);
+      vi.advanceTimersByTime(900);
+    }
+    expect(lengths).toEqual([1, 2, 3, 4]);
+    expect(r.snapshot().game!.prompt).toMatchObject({ kind: 'turn', player: 'host' });
   });
 
   it('a bot plays for a disconnected player after the timeout', () => {

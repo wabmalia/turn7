@@ -9,6 +9,8 @@ export function botAction(s: GameState, id: PlayerId, rand: () => number = Math.
   if (!prompt || prompt.player !== id) return null;
   const pick = <T>(xs: T[]): T => xs[Math.floor(rand() * xs.length)]!;
   switch (prompt.kind) {
+    case 'ack':
+      return { t: 'ack' };
     case 'turn': {
       if (!prompt.canStay) return { t: 'hit' };
       const sum = player(s, id).line.reduce((acc, c) => acc + (c.kind === 'num' ? c.value : 0), 0);

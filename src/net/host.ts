@@ -1,5 +1,5 @@
 import { botAction } from '../engine/bot';
-import { apply, createGame, EngineError, MAX_PLAYERS, type GameAction, type GameState } from '../engine/game';
+import { advance, apply, createGame, EngineError, MAX_PLAYERS, type GameAction, type GameState } from '../engine/game';
 import { randomSeed } from '../engine/rng';
 import { publicView } from '../engine/view';
 import { cleanName, REACTIONS, type RoomView, type ToClient, type ToHost } from './protocol';
@@ -32,6 +32,8 @@ export interface HostEvents {
 
 /** How long a disconnected player's decision waits before a bot takes it. */
 export const AUTOPLAY_MS = 30_000;
+/** Delay between Flip Four cards. */
+export const FLIP_MS = 900;
 
 /**
  * The authoritative room, running in the host's browser. Owns the members and
@@ -45,16 +47,20 @@ export class HostRoom {
   private links = new Map<string, Link>();
   private spectators = new Set<Link>();
   private autoplay: ReturnType<typeof setTimeout> | undefined;
+  private pace: ReturnType<typeof setTimeout> | undefined;
 
   constructor(
     snap: HostSnapshot,
     private events: HostEvents,
     private autoplayMs = AUTOPLAY_MS,
+    private flipMs = FLIP_MS,
   ) {
     this.code = snap.code;
     this.hostId = snap.hostId;
     this.members = snap.members;
     this.game = snap.game;
+    // A resumed room may have been saved mid-Flip-Four or waiting on a bot.
+    this.scheduleTimers();
   }
 
   /** Wire up a freshly opened connection. */
@@ -133,6 +139,7 @@ export class HostRoom {
 
   dispose() {
     clearTimeout(this.autoplay);
+    clearTimeout(this.pace);
     for (const l of [...this.links.values(), ...this.spectators]) l.close();
   }
 
@@ -198,12 +205,25 @@ export class HostRoom {
     this.broadcast({ t: 'room', room });
     this.events.change(room);
     this.events.persist(this.snapshot());
-    this.scheduleAutoplay();
+    this.scheduleTimers();
   }
 
   private broadcast(msg: ToClient) {
     for (const l of this.links.values()) l.send(msg);
     for (const l of this.spectators) l.send(msg);
+  }
+
+  private scheduleTimers() {
+    clearTimeout(this.pace);
+    const g = this.game;
+    if (g?.paused) {
+      this.pace = setTimeout(() => {
+        if (this.game !== g) return;
+        this.game = advance(g);
+        this.changed();
+      }, this.flipMs);
+    }
+    this.scheduleAutoplay();
   }
 
   /** If the current decision belongs to a disconnected player, a bot takes it after a delay. */

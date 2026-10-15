@@ -41,13 +41,26 @@ export type Prompt =
   /** Pick a player: target of Just One More / Flip Four, or who gets a modifier. */
   | { kind: 'player'; player: PlayerId; card: ActCard | ModCard; options: PlayerId[] }
   /** Pick face-up cards: 1 for Steal/Discard, 2 (different owners) for Swap. */
-  | { kind: 'cards'; player: PlayerId; card: ActCard; options: CardId[]; count: 1 | 2 };
+  | { kind: 'cards'; player: PlayerId; card: ActCard; options: CardId[]; count: 1 | 2 }
+  /**
+   * No real choice: the card resolves one way (or fizzles). Shown to everyone
+   * with the reason; the player clicks OK. No target and no cards = fizzle.
+   */
+  | {
+      kind: 'ack';
+      player: PlayerId;
+      card: ActCard | ModCard;
+      text: string;
+      target?: PlayerId;
+      cards?: CardId[];
+    };
 
 export type GameAction =
   | { t: 'hit' }
   | { t: 'stay' }
   | { t: 'player'; target: PlayerId }
   | { t: 'cards'; cards: CardId[] }
+  | { t: 'ack' }
   | { t: 'nextRound' };
 
 export interface GameState {
@@ -62,6 +75,11 @@ export interface GameState {
   seed: number;
   stack: Task[];
   prompt: Prompt | null;
+  /**
+   * Paused between Flip Four cards so players can follow along. The host
+   * calls advance() after a short delay.
+   */
+  paused: boolean;
   /** Players dealt to so far in the opening deal. */
   dealt: number;
   /** Seat index to look for the next turn from. */
@@ -106,6 +124,7 @@ export function createGame(players: { id: PlayerId; name: string }[], opts: NewG
     seed,
     stack: [],
     prompt: null,
+    paused: false,
     dealt: 0,
     nextTurn: 0,
     flip7: [],
@@ -167,7 +186,25 @@ export function apply(state: GameState, playerId: PlayerId, action: GameAction):
       applyAct(s, me, prompt.card, picked, null);
       break;
     }
+    case 'ack': {
+      if (action.t !== 'ack') throw new EngineError('Click OK to continue');
+      s.prompt = null;
+      const { card, target, cards } = prompt;
+      if (card.kind === 'mod') giveMod(s, me, card, target!);
+      else if (target || cards) applyAct(s, me, card, cards ?? [], target ?? null);
+      else s.discard.push(card);
+      break;
+    }
   }
+  run(s);
+  return s;
+}
+
+/** Continue after a Flip Four pause. */
+export function advance(state: GameState): GameState {
+  if (!state.paused) throw new EngineError('Not paused');
+  const s = structuredClone(state);
+  s.paused = false;
   run(s);
   return s;
 }
@@ -195,7 +232,7 @@ function startRound(s: GameState) {
 /** Process tasks until a decision is needed or the round ends. */
 function run(s: GameState) {
   const n = s.players.length;
-  while (!s.prompt && (s.phase === 'dealing' || s.phase === 'playing')) {
+  while (!s.prompt && !s.paused && (s.phase === 'dealing' || s.phase === 'playing')) {
     if (s.flip7.length) return endRound(s);
     const task = s.stack.pop();
     if (task) {
@@ -219,6 +256,8 @@ function run(s: GameState) {
     const p = s.players[idx]!;
     s.prompt = { kind: 'turn', player: p.id, canStay: !hasSpecial(p, 'zero') };
   }
+  // A Flip 7 on a Flip Four card ends the round right away, no pause.
+  if (s.paused && s.flip7.length) endRound(s);
 }
 
 function endRound(s: GameState) {
@@ -231,6 +270,7 @@ function endRound(s: GameState) {
   if (s.prompt && s.prompt.kind !== 'turn') s.discard.push(s.prompt.card);
   s.stack = [];
   s.prompt = null;
+  s.paused = false;
 
   for (const id of s.flip7) log(s, `${player(s, id).name} FLIPS 7!`);
   s.results = s.players.map((p) => scorePlayer(p, s.flip7.includes(p.id)));
@@ -297,6 +337,7 @@ function process(s: GameState, task: Task) {
         aside.push(c);
       }
       s.stack.push({ ...task, left: task.left - 1, aside });
+      s.paused = true;
       return;
     }
     case 'aside': {
@@ -315,7 +356,10 @@ function process(s: GameState, task: Task) {
       return resolveAct(s, p, task.card);
     case 'mod': {
       const options = nonBusted(s).map((x) => x.id);
-      if (options.length === 1) return giveMod(s, p, task.card, options[0]!, true);
+      if (options.length === 1) {
+        const text = `${p.name} must keep ${cardLabel(task.card)}: everyone else has busted`;
+        return forced(s, p, task.card, text, { target: options[0]! });
+      }
       s.prompt = { kind: 'player', player: p.id, card: task.card, options };
       return;
     }
@@ -328,7 +372,10 @@ function resolveAct(s: GameState, p: Player, card: ActCard) {
     case 'justOneMore':
     case 'flipFour': {
       const options = live.map((x) => x.id);
-      if (options.length === 1) return applyAct(s, p, card, [], options[0]!);
+      if (options.length === 1) {
+        const text = `${p.name} is the only player left, so ${cardLabel(card)} must be played on them`;
+        return forced(s, p, card, text, { target: options[0]! });
+      }
       s.prompt = { kind: 'player', player: p.id, card, options };
       return;
     }
@@ -336,14 +383,24 @@ function resolveAct(s: GameState, p: Player, card: ActCard) {
     case 'discard': {
       const owners = card.act === 'steal' ? live.filter((x) => x.id !== p.id) : live;
       const options = owners.flatMap((x) => x.line.map((c) => c.id));
-      if (options.length === 0) return noTarget(s, card);
-      if (options.length === 1) return applyAct(s, p, card, options, null);
+      const verb = card.act === 'steal' ? 'steal' : 'discard';
+      if (options.length === 0) {
+        return forced(s, p, card, `${cardLabel(card)}: there are no face-up cards to ${verb}`, {});
+      }
+      if (options.length === 1) {
+        const owner = ownerOf(s, options[0]!)!;
+        const c = owner.line.find((x) => x.id === options[0])!;
+        const text = `${cardLabel(card)}: the only card to ${verb} is ${owner.name}'s ${cardLabel(c)}`;
+        return forced(s, p, card, text, { cards: options });
+      }
       s.prompt = { kind: 'cards', player: p.id, card, options, count: 1 };
       return;
     }
     case 'swap': {
       const owners = live.filter((x) => x.line.length > 0);
-      if (owners.length < 2) return noTarget(s, card);
+      if (owners.length < 2) {
+        return forced(s, p, card, 'Swap: needs face-up cards from two different players', {});
+      }
       const options = owners.flatMap((x) => x.line.map((c) => c.id));
       s.prompt = { kind: 'cards', player: p.id, card, options, count: 2 };
       return;
@@ -390,16 +447,21 @@ function applyAct(s: GameState, p: Player, card: ActCard, cards: CardId[], targe
   }
 }
 
-function noTarget(s: GameState, card: ActCard) {
-  log(s, `${cardLabel(card)} has no target and is discarded`);
-  s.discard.push(card);
+/** Show a no-choice outcome and wait for the player to click OK. */
+function forced(
+  s: GameState,
+  p: Player,
+  card: ActCard | ModCard,
+  text: string,
+  outcome: { target?: PlayerId; cards?: CardId[] },
+) {
+  log(s, text);
+  s.prompt = { kind: 'ack', player: p.id, card, text, ...outcome };
 }
 
-function giveMod(s: GameState, from: Player, card: ModCard, to: PlayerId, forced = false) {
+function giveMod(s: GameState, from: Player, card: ModCard, to: PlayerId) {
   const t = player(s, to);
-  if (forced) log(s, `${from.name} must keep ${cardLabel(card)}: everyone else has busted`);
-  else if (from.id === to) log(s, `${from.name} keeps ${cardLabel(card)}`);
-  else log(s, `${from.name} gives ${cardLabel(card)} to ${t.name}`);
+  log(s, from.id === to ? `${from.name} keeps ${cardLabel(card)}` : `${from.name} gives ${cardLabel(card)} to ${t.name}`);
   receive(s, t, card);
 }
 

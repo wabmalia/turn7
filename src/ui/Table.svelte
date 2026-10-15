@@ -164,7 +164,7 @@
           {#if !mine.canStay}<p class="muted small">You hold The Zero: you must keep hitting.</p>{/if}
         {:else if mine?.kind === 'player'}
           <div class="pending">
-            <Card small card={mine.card} />
+            <Card card={mine.card} />
             <p class="title">
               {mine.card.kind === 'mod' ? `Who gets ${cardLabel(mine.card)}?` : `Who do you play ${cardLabel(mine.card)} on?`}
             </p>
@@ -178,7 +178,7 @@
           </div>
         {:else if mine?.kind === 'cards'}
           <div class="pending">
-            <Card small card={mine.card} />
+            <Card card={mine.card} />
             <p class="title">{cardsPromptText(mine)}</p>
           </div>
           <div class="buttons">
@@ -189,18 +189,23 @@
           </div>
         {:else if mine?.kind === 'ack'}
           <div class="pending">
-            <Card small card={mine.card} />
+            <Card card={mine.card} />
             <p class="title">{mine.text}</p>
           </div>
           <button class="primary" onclick={() => session.act({ t: 'ack' })}>OK</button>
         {:else if prompt?.kind === 'ack'}
           <div class="pending">
-            <Card small card={prompt.card} />
+            <Card card={prompt.card} />
             <p class="title">{prompt.text}</p>
           </div>
           <p class="muted small">Waiting for {name(prompt.player)} to continue…</p>
         {:else if g.paused && flipping?.t === 'flipFour'}
           <p class="title">{name(flipping.player)} is flipping four… {4 - flipping.left}/4</p>
+        {:else if prompt && prompt.kind !== 'turn'}
+          <div class="pending">
+            <Card card={prompt.card} />
+            <p class="title">{describe(prompt)}…</p>
+          </div>
         {:else if prompt}
           <p class="muted">{describe(prompt)}…</p>
         {/if}

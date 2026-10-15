@@ -52,6 +52,8 @@ The rulebook recommends a second deck above 18 players.
    the dealer and going clockwise. Action and modifier cards resolve
    immediately when dealt. Some players may end up with several cards,
    others with none.
+   **Ruling:** a player who has already stayed (Just One More) or busted
+   (Flip Four) by the time their deal comes round is skipped.
 2. Starting left of the dealer, each active player in turn chooses hit
    or stay. This repeats clockwise until no active players remain.
 3. Any action or modifier card that is revealed is resolved immediately.

@@ -1,0 +1,26 @@
+{
+  "name": "yaflip7",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check": "svelte-check --tsconfig ./tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "peerjs": "1.5.4"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "5.1.0",
+    "@tsconfig/svelte": "5.0.4",
+    "svelte": "5.33.14",
+    "svelte-check": "4.2.1",
+    "typescript": "5.8.3",
+    "vite": "6.3.5",
+    "vitest": "3.2.3"
+  }
+}

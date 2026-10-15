@@ -546,5 +546,6 @@ describe('simulation', () => {
       expect(countCards(s)).toBe(DECK_SIZE);
       expect(s.winners!.length).toBeGreaterThan(0);
     }
-  });
+    // ~2s locally, slower on CI runners.
+  }, 60_000);
 });

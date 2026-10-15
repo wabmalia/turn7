@@ -1,7 +1,6 @@
 <script lang="ts">
   import { session } from '../net/session.svelte';
   import { NAME_MAX, normalizeCode } from '../net/protocol';
-  import { GAME_NAME } from './brand';
   import RulesSheet from './RulesSheet.svelte';
 
   const linkCode = location.hash.startsWith('#/join/') ? normalizeCode(location.hash.slice(7)) : '';
@@ -26,7 +25,7 @@
 <main>
   <header>
     <div class="logo" aria-hidden="true">7</div>
-    <h1>{GAME_NAME}</h1>
+    <h1 aria-label="Turn 7">Turn<sup>7</sup></h1>
     <p class="muted">Push your luck, flip seven, wreck your friends. No accounts, no server: one browser hosts, everyone joins.</p>
   </header>
 
@@ -107,7 +106,12 @@
   }
   h1 {
     margin: 0;
-    font-size: 2rem;
+    font-size: 2.2rem;
+  }
+  h1 sup {
+    font-size: 0.55em;
+    color: var(--accent);
+    margin-left: 0.05em;
   }
   h2 {
     margin: 0 0 0.5rem;

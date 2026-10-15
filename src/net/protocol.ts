@@ -1,7 +1,7 @@
 import type { GameAction } from '../engine/game';
 import type { PublicState } from '../engine/view';
 
-export const PEER_PREFIX = 'yaflip7-v1-';
+export const PEER_PREFIX = 'turn7-v1-';
 export const REACTIONS = ['👍', '😂', '😱', '😈', '🔥', '💀', '🙏', '👏'] as const;
 export const NAME_MAX = 16;
 

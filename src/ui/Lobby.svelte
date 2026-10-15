@@ -3,6 +3,7 @@
   import type { RoomView } from '../net/protocol';
   import { session } from '../net/session.svelte';
   import RulesSheet from './RulesSheet.svelte';
+  import { GAME_NAME } from './brand';
 
   let { room }: { room: RoomView } = $props();
   let copied = $state(false);
@@ -14,7 +15,7 @@
   async function share() {
     if (navigator.share) {
       try {
-        await navigator.share({ title: 'Join my game', url: link });
+        await navigator.share({ title: `Join my ${GAME_NAME} game`, url: link });
         return;
       } catch {
         /* fall back to copy */

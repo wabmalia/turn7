@@ -39,15 +39,15 @@ const store = {
 
 /** Per-tab identity, so a refresh reclaims the same seat but two tabs are two players. */
 function tabId(): string {
-  let id = store.get(sessionStorage, 'yaflip7.id');
+  let id = store.get(sessionStorage, 'turn7.id');
   if (!id) {
     id = crypto.randomUUID();
-    store.set(sessionStorage, 'yaflip7.id', id);
+    store.set(sessionStorage, 'turn7.id', id);
   }
   return id;
 }
 
-const snapKey = (code: string) => `yaflip7.host.${code}`;
+const snapKey = (code: string) => `turn7.host.${code}`;
 
 export function savedHost(code: string): HostSnapshot | null {
   const raw = store.get(localStorage, snapKey(code));
@@ -70,7 +70,7 @@ class Session {
   linked = $state(true);
   reactions = $state<Reaction[]>([]);
   toast = $state<string | null>(null);
-  name = $state(store.get(localStorage, 'yaflip7.name') ?? '');
+  name = $state(store.get(localStorage, 'turn7.name') ?? '');
 
   private peer: Peer | null = null;
   private host: HostRoom | null = null;
@@ -81,7 +81,7 @@ class Session {
 
   setName(name: string) {
     this.name = cleanName(name);
-    store.set(localStorage, 'yaflip7.name', this.name);
+    store.set(localStorage, 'turn7.name', this.name);
   }
 
   // Hosting ---------------------------------------------------------------
@@ -173,7 +173,7 @@ class Session {
     this.code = code;
     this.status = 'connecting';
     this.message = `Looking for room ${code}…`;
-    store.set(sessionStorage, 'yaflip7.joined', code);
+    store.set(sessionStorage, 'turn7.joined', code);
     const peer = new Peer();
     this.peer = peer;
     peer.on('open', () => this.connectToHost());
@@ -228,7 +228,7 @@ class Session {
         break;
       case 'rejected':
         this.fail(msg.reason);
-        store.set(sessionStorage, 'yaflip7.joined', null);
+        store.set(sessionStorage, 'turn7.joined', null);
         break;
     }
   }
@@ -256,7 +256,7 @@ class Session {
   /** Leave the room. A host leaving closes it for everyone. */
   leave() {
     if (this.host) store.set(localStorage, snapKey(this.code), null);
-    store.set(sessionStorage, 'yaflip7.joined', null);
+    store.set(sessionStorage, 'turn7.joined', null);
     this.teardown();
     this.status = 'home';
     location.hash = '#/';
@@ -298,7 +298,7 @@ class Session {
     const [, kind, raw] = location.hash.split('/');
     const code = (raw ?? '').toUpperCase();
     if (kind === 'host' && code && savedHost(code)) this.hostRoom(code);
-    else if (kind === 'join' && code && store.get(sessionStorage, 'yaflip7.joined') === code) this.joinRoom(code);
+    else if (kind === 'join' && code && store.get(sessionStorage, 'turn7.joined') === code) this.joinRoom(code);
   }
 }
 

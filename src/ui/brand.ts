@@ -1,2 +1,2 @@
-/** Placeholder name until the game gets its own branding. */
-export const GAME_NAME = 'Yet Another Flip7';
+/** Plain-text game name (tab title, share text). Styled as Turn<sup>7</sup> on screen. */
+export const GAME_NAME = 'Turn⁷';

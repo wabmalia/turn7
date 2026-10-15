@@ -1,4 +1,4 @@
-# yaflip7
+# Turn⁷
 
 A browser-based, peer-to-peer take on a push-your-luck card game (the
 "Vengeance" ruleset). No backend: one player's browser hosts the room and

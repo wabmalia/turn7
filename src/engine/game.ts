@@ -272,7 +272,7 @@ function endRound(s: GameState) {
   s.prompt = null;
   s.paused = false;
 
-  for (const id of s.flip7) log(s, `${player(s, id).name} FLIPPED 7!`);
+  for (const id of s.flip7) log(s, `${player(s, id).name} TURNED 7!`);
   s.results = s.players.map((p) => scorePlayer(p, s.flip7.includes(p.id)));
   for (const r of s.results) player(s, r.player).total += r.score;
 

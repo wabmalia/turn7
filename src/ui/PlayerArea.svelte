@@ -44,7 +44,7 @@
     {#if isDealer}<span class="chip" title="Dealer">D</span>{/if}
     {#if player.status === 'stayed'}<span class="chip stayed">Stayed</span>{/if}
     {#if player.status === 'busted'}<span class="chip busted">Bust</span>{/if}
-    {#if flip7}<span class="chip flip7">Flip 7!</span>{/if}
+    {#if flip7}<span class="chip flip7">Turn 7!</span>{/if}
     <span class="score">
       <b>{player.total}</b>
       {#if player.status !== 'busted'}<span class="muted">+{live}</span>{/if}

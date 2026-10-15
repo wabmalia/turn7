@@ -20,12 +20,12 @@
   </div>
 
   <p>Race to <b>200 points</b>. On your turn, <b>hit</b> (flip a card) or <b>stay</b> (bank your line). Flip a number you already have and you <b>bust</b>: zero for the round.</p>
-  <p>Collect <b>7 different numbers</b> to Flip 7: the round ends at once and you get <b>+15</b>. Nothing is safe until the round ends.</p>
+  <p>Collect <b>7 different numbers</b> to Turn 7: the round ends at once and you get <b>+15</b>. Nothing is safe until the round ends.</p>
   <p class="muted">The deck has thirteen 13s, twelve 12s… down to one 1.</p>
 
   <h3>Special numbers</h3>
   <dl>
-    <div><dt><Card small card={ex({ kind: 'num', value: 0, special: 'zero' })} /></dt><dd><b>The Zero.</b> Your round score is 0 unless you Flip 7. You can't stay.</dd></div>
+    <div><dt><Card small card={ex({ kind: 'num', value: 0, special: 'zero' })} /></dt><dd><b>The Zero.</b> Your round score is 0 unless you Turn 7. You can't stay.</dd></div>
     <div><dt><Card small card={ex({ kind: 'num', value: 7, special: 'unlucky7' })} /></dt><dd><b>Unlucky 7.</b> Discard everything else in your line. Can't bust you when you get it.</dd></div>
     <div><dt><Card small card={ex({ kind: 'num', value: 13, special: 'lucky13' })} /></dt><dd><b>Lucky 13.</b> You may hold one other 13 without busting. A third busts.</dd></div>
   </dl>

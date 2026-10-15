@@ -24,9 +24,8 @@
 
 <main>
   <header>
-    <div class="logo" aria-hidden="true">7</div>
-    <h1 aria-label="Turn 7">Turn<sup>7</sup></h1>
-    <p class="muted">Push your luck, flip seven, wreck your friends. No accounts, no server: one browser hosts, everyone joins.</p>
+    <h1 aria-label="Turn 7">Turn<span class="seven" aria-hidden="true">7</span></h1>
+    <p class="muted">Push your luck, turn seven, wreck your friends. No accounts, no server: one browser hosts, everyone joins.</p>
   </header>
 
   <section class="panel">
@@ -90,28 +89,29 @@
   header {
     text-align: center;
   }
-  .logo {
-    width: 64px;
-    height: 88px;
-    margin: 0 auto 0.5rem;
-    border-radius: 10px;
+  h1 {
+    margin: 0.5rem 0 0.25rem;
+    font-size: 3.2rem;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+  /* The superscript 7 is drawn as a playing card. */
+  .seven {
+    display: inline-grid;
+    place-items: center;
+    width: 0.62em;
+    height: 0.86em;
+    margin-left: 0.08em;
+    font-size: 0.6em;
+    vertical-align: 0.9em;
+    border: 0.07em solid #1d2340;
+    border-radius: 0.12em;
     background: var(--gold);
     color: #1d2340;
-    font-size: 3rem;
-    font-weight: 900;
-    display: grid;
-    place-items: center;
-    transform: rotate(-6deg);
+    line-height: 1;
+    transform: rotate(10deg);
     box-shadow: var(--shadow);
-  }
-  h1 {
-    margin: 0;
-    font-size: 2.2rem;
-  }
-  h1 sup {
-    font-size: 0.55em;
-    color: var(--accent);
-    margin-left: 0.05em;
   }
   h2 {
     margin: 0 0 0.5rem;

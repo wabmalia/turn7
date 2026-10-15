@@ -315,7 +315,7 @@ function process(s: GameState, task: Task) {
       return resolveAct(s, p, task.card);
     case 'mod': {
       const options = nonBusted(s).map((x) => x.id);
-      if (options.length === 1) return giveMod(s, p, task.card, options[0]!);
+      if (options.length === 1) return giveMod(s, p, task.card, options[0]!, true);
       s.prompt = { kind: 'player', player: p.id, card: task.card, options };
       return;
     }
@@ -395,9 +395,11 @@ function noTarget(s: GameState, card: ActCard) {
   s.discard.push(card);
 }
 
-function giveMod(s: GameState, from: Player, card: ModCard, to: PlayerId) {
+function giveMod(s: GameState, from: Player, card: ModCard, to: PlayerId, forced = false) {
   const t = player(s, to);
-  log(s, from.id === to ? `${from.name} keeps ${cardLabel(card)}` : `${from.name} gives ${cardLabel(card)} to ${t.name}`);
+  if (forced) log(s, `${from.name} must keep ${cardLabel(card)}: everyone else has busted`);
+  else if (from.id === to) log(s, `${from.name} keeps ${cardLabel(card)}`);
+  else log(s, `${from.name} gives ${cardLabel(card)} to ${t.name}`);
   receive(s, t, card);
 }
 

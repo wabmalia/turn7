@@ -267,11 +267,23 @@ describe('modifiers', () => {
     expect(values(s, 'B')).toEqual([5, 'm4']);
   });
 
+  it('let you choose anyone when nobody has busted, in a 2 player game', () => {
+    let s = game([n(5), n(6), mod('m8')], ['A', 'B']);
+    s = play(s, 'A', HIT);
+    expect(s.prompt).toMatchObject({ kind: 'player', player: 'A', options: ['A', 'B'] });
+  });
+
+  it('let you choose when dealt in the opening deal', () => {
+    const s = game([mod('m8'), n(6)], ['A', 'B']);
+    expect(s.prompt).toMatchObject({ kind: 'player', player: 'A', options: ['A', 'B'] });
+  });
+
   it('are kept when you are the only non-busted player', () => {
     let s = game([n(5), n(6), n(5), mod('m2')], ['A', 'B']);
     s = play(s, 'A', HIT); // A busts
     s = play(s, 'B', HIT); // B flips -2 and must keep it
     expect(values(s, 'B')).toEqual([6, 'm2']);
+    expect(s.log).toContain('B must keep -2: everyone else has busted');
   });
 });
 

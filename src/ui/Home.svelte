@@ -24,7 +24,19 @@
 
 <main>
   <header>
-    <h1 aria-label="Turn 7">Turn<span class="seven" aria-hidden="true">7</span></h1>
+    <h1 aria-label="Turn 7">Turn<svg class="seven" viewBox="0 0 64 84" aria-hidden="true"
+        ><g transform="rotate(10 32 42)"
+          ><rect x="10" y="8" width="44" height="66" rx="7" fill="#f2b134" stroke="#1d2340" stroke-width="3.5" /><text
+            x="32"
+            y="55"
+            text-anchor="middle"
+            font-size="40"
+            font-weight="900"
+            font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
+            fill="#1d2340">7</text
+          ></g
+        ></svg
+      ></h1>
     <p class="muted">Push your luck, turn seven, wreck your friends. No accounts, no server: one browser hosts, everyone joins.</p>
   </header>
 
@@ -96,22 +108,14 @@
     letter-spacing: -0.02em;
     line-height: 1;
   }
-  /* The superscript 7 is drawn as a playing card. */
+  /* The superscript 7 is drawn as a playing card (SVG, so it rotates cleanly). */
   .seven {
-    display: inline-grid;
-    place-items: center;
-    width: 0.62em;
-    height: 0.86em;
-    margin-left: 0.08em;
-    font-size: 0.6em;
-    vertical-align: 0.9em;
-    border: 0.07em solid #1d2340;
-    border-radius: 0.12em;
-    background: var(--gold);
-    color: #1d2340;
-    line-height: 1;
-    transform: rotate(10deg);
-    box-shadow: var(--shadow);
+    height: 0.8em;
+    width: auto;
+    margin-left: 0.02em;
+    vertical-align: 0.45em;
+    overflow: visible;
+    filter: drop-shadow(0 2px 3px rgb(0 0 0 / 0.25));
   }
   h2 {
     margin: 0 0 0.5rem;

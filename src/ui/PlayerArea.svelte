@@ -98,6 +98,17 @@
     min-width: 0;
     transition: border-color 150ms ease, box-shadow 150ms ease;
   }
+  /* State borders: blue for stayed, red for bust. Turn (gold) wins over both. */
+  .stayed {
+    border-color: var(--stay);
+    background: color-mix(in srgb, var(--stay) 7%, var(--surface));
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--stay) 35%, transparent), var(--shadow);
+  }
+  .busted {
+    border-color: var(--bad);
+    background: color-mix(in srgb, var(--bad) 7%, var(--surface));
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--bad) 35%, transparent), var(--shadow);
+  }
   .turn {
     border-color: var(--gold);
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--gold) 45%, transparent), var(--shadow);
@@ -150,8 +161,8 @@
     white-space: nowrap;
   }
   .chip.stayed {
-    background: color-mix(in srgb, var(--good) 20%, transparent);
-    color: var(--good);
+    background: color-mix(in srgb, var(--stay) 20%, transparent);
+    color: var(--stay);
   }
   .chip.busted {
     background: color-mix(in srgb, var(--bad) 20%, transparent);

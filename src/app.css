@@ -11,6 +11,7 @@
   --gold: #f2b134;
   --good: #2f9e6b;
   --bad: #c73a3a;
+  --stay: #2f6fd6;
   --focus: #3b6cf6;
   --card-face: #fffaf0;
   --card-edge: #1d2340;
@@ -28,6 +29,8 @@
     --text: #eef0fa;
     --muted: #9aa0bf;
     --border: #353b66;
+    --bad: #e05555;
+    --stay: #5b93f0;
     --card-face: #fbf6ea;
     --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 4px 16px rgb(0 0 0 / 0.3);
   }

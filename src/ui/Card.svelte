@@ -22,7 +22,8 @@
       if (card.special === 'lucky13') return { big: '13', sub: 'LUCKY' };
       return { big: String(card.value), sub: '' };
     }
-    if (card.kind === 'mod') return { big: cardLabel(card), sub: '' };
+    // "÷2" reads like "+2" at a glance, so the halving card shows ½.
+    if (card.kind === 'mod') return card.mod === 'half' ? { big: '½', sub: 'HALF' } : { big: cardLabel(card), sub: '' };
     const words: Record<string, [string, string]> = {
       justOneMore: ['+1', 'JUST ONE MORE'],
       flipFour: ['×4', 'FLIP FOUR'],

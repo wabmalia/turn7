@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import { cardLabel, type CardId } from '../engine/cards';
   import type { Prompt } from '../engine/game';
   import { REACTIONS, type RoomView } from '../net/protocol';
@@ -7,6 +8,7 @@
   import PlayerArea from './PlayerArea.svelte';
   import RoundResults from './RoundResults.svelte';
   import RulesSheet from './RulesSheet.svelte';
+  import Celebration from './Celebration.svelte';
 
   let { room }: { room: RoomView } = $props();
 
@@ -25,6 +27,17 @@
   const me = $derived(g.players.find((p) => p.id === session.me));
 
   let selected = $state<CardId[]>([]);
+
+  // Celebrate each Turn 7 once. Seeded with the state we first see, so
+  // joining or refreshing on the results screen doesn't replay it.
+  const turn7Key = $derived(g.flip7.length ? `${g.round}:${g.flip7.join(',')}` : '');
+  let celebrated = untrack(() => turn7Key);
+  let celebration = $state<{ key: string; names: string[] } | null>(null);
+  $effect(() => {
+    if (!turn7Key || turn7Key === celebrated) return;
+    celebrated = turn7Key;
+    celebration = { key: turn7Key, names: g.flip7.map(name) };
+  });
   let showRules = $state(false);
 
   // Fresh selection for every new decision. Keyed by content, since every
@@ -241,6 +254,12 @@
 
 {#if showRules}
   <RulesSheet onclose={() => (showRules = false)} />
+{/if}
+
+{#if celebration}
+  {#key celebration.key}
+    <Celebration names={celebration.names} ondone={() => (celebration = null)} />
+  {/key}
 {/if}
 
 <style>

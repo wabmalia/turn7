@@ -81,7 +81,8 @@ it leaves their line.
 
 ### The Zero (value 0)
 - While held, your round score is 0 unless you Flip 7.
-- You must hit on your turn; Stay is not allowed.
+- You must hit on your turn; Stay is not allowed. The app hits for you
+  automatically after a short pause.
 - Counts as a number card toward Flip 7.
 - **Ruling:** a forced stay (Just One More) overrides "must hit".
 - **Ruling:** a stayed player who receives The Zero stays stayed; it

@@ -12,6 +12,7 @@
     isDealer = false,
     connected = true,
     flip7 = false,
+    roundOver = false,
     selectable = new Set<CardId>(),
     selected = [],
     aside = [],
@@ -24,6 +25,8 @@
     isDealer?: boolean;
     connected?: boolean;
     flip7?: boolean;
+    /** Totals already include this round's score, so hide the projection. */
+    roundOver?: boolean;
     selectable?: Set<CardId>;
     selected?: CardId[];
     /** Flip Four cards waiting to resolve after the flips. */
@@ -45,9 +48,12 @@
     {#if player.status === 'stayed'}<span class="chip stayed">Stayed</span>{/if}
     {#if player.status === 'busted'}<span class="chip busted">Bust</span>{/if}
     {#if flip7}<span class="chip flip7">Turn 7!</span>{/if}
-    <span class="score">
+    <span class="score" title="Total score, this round, and the total if the round ended now">
       <b>{player.total}</b>
-      {#if player.status !== 'busted'}<span class="muted">+{live}</span>{/if}
+      {#if !roundOver && player.status !== 'busted'}
+        <span class="muted">+{live} →</span>
+        <b class="projected">{player.total + live}</b>
+      {/if}
     </span>
   </header>
 
@@ -121,6 +127,9 @@
   }
   .score b {
     font-size: 1.1rem;
+  }
+  .score .projected {
+    color: var(--accent);
   }
   .dot {
     width: 9px;

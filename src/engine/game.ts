@@ -76,8 +76,9 @@ export interface GameState {
   stack: Task[];
   prompt: Prompt | null;
   /**
-   * Paused between Flip Four cards so players can follow along. The host
-   * calls advance() after a short delay.
+   * Paused so players can follow along: between Flip Four cards, and before
+   * an automatic hit for a player holding The Zero. The host calls advance()
+   * after a short delay.
    */
   paused: boolean;
   /** Players dealt to so far in the opening deal. */
@@ -254,7 +255,16 @@ function run(s: GameState) {
     const idx = nextActive(s, s.nextTurn);
     if (idx < 0) return endRound(s);
     const p = s.players[idx]!;
-    s.prompt = { kind: 'turn', player: p.id, canStay: !hasSpecial(p, 'zero') };
+    if (hasSpecial(p, 'zero')) {
+      // The Zero must keep hitting, so there's nothing to decide: hit for
+      // them after the same short pause as a Flip Four card.
+      s.nextTurn = (idx + 1) % n;
+      log(s, `${p.name} hit automatically (The Zero)`);
+      s.stack.push({ t: 'draw', player: p.id });
+      s.paused = true;
+      continue;
+    }
+    s.prompt = { kind: 'turn', player: p.id, canStay: true };
   }
   // A Flip 7 on a Flip Four card ends the round right away, no pause.
   if (s.paused && s.flip7.length) endRound(s);

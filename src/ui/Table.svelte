@@ -83,6 +83,14 @@
   // Flip Four in progress: the top-most flipFour task on the stack.
   const flipping = $derived([...g.stack].reverse().find((t) => t.t === 'flipFour'));
 
+  // A pause with a bare draw on top is The Zero's automatic hit.
+  const autoHit = $derived.by(() => {
+    const top = g.stack[g.stack.length - 1];
+    return g.paused && top?.t === 'draw' ? top : undefined;
+  });
+  const zeroCard = (id: string) =>
+    g.players.find((p) => p.id === id)!.line.find((c) => c.kind === 'num' && c.special === 'zero')!;
+
   /** Cards set aside during Flip Four, waiting to resolve, per player. */
   function asideOf(id: string) {
     return g.stack.flatMap((t) =>
@@ -116,6 +124,7 @@
           isDealer={g.players[g.dealer]?.id === p.id}
           connected={connected(p.id)}
           flip7={g.flip7.includes(p.id)}
+          {roundOver}
           {selectable}
           {selected}
           aside={asideOf(p.id)}
@@ -134,6 +143,7 @@
         isTurn={prompt?.player === me.id}
         isDealer={g.players[g.dealer]?.id === me.id}
         flip7={g.flip7.includes(me.id)}
+        {roundOver}
         {selectable}
         {selected}
         aside={asideOf(me.id)}
@@ -191,6 +201,11 @@
             <p class="title">{prompt.text}</p>
           </div>
           <p class="muted small">Waiting for {name(prompt.player)} to continue…</p>
+        {:else if g.paused && autoHit}
+          <div class="pending">
+            <Card card={zeroCard(autoHit.player)} />
+            <p class="title">{name(autoHit.player)} holds The Zero and hits automatically…</p>
+          </div>
         {:else if g.paused && flipping?.t === 'flipFour'}
           <p class="title">{name(flipping.player)} is flipping four… {4 - flipping.left}/4</p>
         {:else if prompt && prompt.kind !== 'turn'}

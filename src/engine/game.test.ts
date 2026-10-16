@@ -162,19 +162,28 @@ describe('scoring', () => {
 });
 
 describe('The Zero', () => {
-  it('forbids staying', () => {
-    const s = game([zero(), n(6), n(8)]);
-    expect(s.prompt).toEqual({ kind: 'turn', player: 'A', canStay: false });
-    expect(() => apply(s, 'A', STAY)).toThrow('must hit');
+  it('hits automatically, after a pause, instead of offering hit or stay', () => {
+    // No settle(): look at the raw pause.
+    const s = createGame([{ id: 'A', name: 'A' }, { id: 'B', name: 'B' }], {
+      seed: 1,
+      dealer: 1,
+      deck: [zero(), n(6), n(8), n(9)],
+    });
+    expect(s.paused).toBe(true);
+    expect(s.prompt).toBeNull();
+    expect(s.log).toContain('A hit automatically (The Zero)');
+    expect(() => apply(s, 'A', STAY)).toThrow();
+    const after = advance(s);
+    expect(values(after, 'A')).toEqual([0, 8]);
+    expect(after.prompt).toMatchObject({ kind: 'turn', player: 'B' });
   });
 
   it('scores zero unless you Flip 7', () => {
+    // A auto-hits the 12, B and C stay, then A auto-hits an empty deck and must stay.
     let s = game([zero(), n(6), n(8), n(12)]);
-    s = play(s, 'A', HIT);
     s = play(s, 'B', STAY);
     s = play(s, 'C', STAY);
-    // A must keep hitting; deck empty so A is forced to stay.
-    s = play(s, 'A', HIT);
+    expect(values(s, 'A')).toEqual([0, 12]);
     expect(s.phase).toBe('roundEnd');
     expect(s.results![0]!.score).toBe(0);
     const flipped = scorePlayer({ id: 'X', name: 'X', status: 'active', total: 0, line: [zero(), n(1), n(2), n(3), n(4), n(5), n(6)] as never }, true);
@@ -182,8 +191,8 @@ describe('The Zero', () => {
   });
 
   it('counts toward the 7 cards', () => {
-    let s = game([zero(), n(1), n(2), n(3), n(4), n(5), n(6)], ['A']);
-    for (let i = 0; i < 6; i++) s = play(s, 'A', HIT);
+    // Solo with The Zero: every hit is automatic.
+    const s = game([zero(), n(1), n(2), n(3), n(4), n(5), n(6)], ['A']);
     expect(s.flip7).toEqual(['A']);
   });
 

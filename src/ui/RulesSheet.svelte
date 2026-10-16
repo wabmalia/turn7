@@ -25,7 +25,7 @@
 
   <h3>Special numbers</h3>
   <dl>
-    <div><dt><Card small card={ex({ kind: 'num', value: 0, special: 'zero' })} /></dt><dd><b>The Zero.</b> Your round score is 0 unless you Turn 7. You can't stay.</dd></div>
+    <div><dt><Card small card={ex({ kind: 'num', value: 0, special: 'zero' })} /></dt><dd><b>The Zero.</b> Your round score is 0 unless you Turn 7. You can't stay: you hit automatically on your turn.</dd></div>
     <div><dt><Card small card={ex({ kind: 'num', value: 7, special: 'unlucky7' })} /></dt><dd><b>Unlucky 7.</b> Discard everything else in your line. Can't bust you when you get it.</dd></div>
     <div><dt><Card small card={ex({ kind: 'num', value: 13, special: 'lucky13' })} /></dt><dd><b>Lucky 13.</b> You may hold one other 13 without busting. A third busts.</dd></div>
   </dl>

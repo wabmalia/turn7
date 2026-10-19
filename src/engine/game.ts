@@ -7,7 +7,7 @@ import {
   type ModCard,
   type NumCard,
 } from './cards';
-import { shuffle } from './rng';
+import { shuffle, type Seed } from './rng';
 import { scorePlayer, type RoundResult } from './score';
 
 export type PlayerId = string;
@@ -72,7 +72,8 @@ export interface GameState {
   /** deck[0] is the top card. */
   deck: Card[];
   discard: Card[];
-  seed: number;
+  /** Only set in tests; real games shuffle with secure randomness (null). */
+  seed: Seed;
   stack: Task[];
   prompt: Prompt | null;
   /**
@@ -98,7 +99,8 @@ export const MAX_PLAYERS = 18;
 const LOG_LIMIT = 200;
 
 export interface NewGameOptions {
-  seed: number;
+  /** Repeatable shuffles for tests. Omit for secure randomness. */
+  seed?: number;
   target?: number;
   dealer?: number;
   /** Fixed deck order (top first) for tests. Skips the initial shuffle. */
@@ -108,7 +110,7 @@ export interface NewGameOptions {
 export function createGame(players: { id: PlayerId; name: string }[], opts: NewGameOptions): GameState {
   if (players.length < 1) throw new EngineError('Need at least one player');
   if (players.length > MAX_PLAYERS) throw new EngineError(`At most ${MAX_PLAYERS} players`);
-  let seed = opts.seed;
+  let seed: Seed = opts.seed ?? null;
   let deck = opts.deck;
   if (!deck) {
     deck = buildDeck();

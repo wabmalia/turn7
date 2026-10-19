@@ -3,7 +3,7 @@ import { buildDeck, DECK_SIZE, type Act, type Card, type Mod } from './cards';
 import { advance, apply, createGame, player, type GameAction, type GameState } from './game';
 import { scorePlayer } from './score';
 import { botAction } from './bot';
-import { nextRandom } from './rng';
+import { nextRandom, secureInt } from './rng';
 
 // Test card factories. Ids start high so they never clash with buildDeck().
 let nextId = 1000;
@@ -52,6 +52,29 @@ describe('deck', () => {
     expect(count(0)).toBe(1); // The Zero
     expect(d.filter((c) => c.kind === 'mod')).toHaveLength(6);
     expect(d.filter((c) => c.kind === 'act')).toHaveLength(10);
+  });
+});
+
+describe('shuffling', () => {
+  it('secureInt stays in range and reaches every value', () => {
+    const seen = new Set<number>();
+    for (let i = 0; i < 2000; i++) {
+      const x = secureInt(7);
+      expect(x).toBeGreaterThanOrEqual(0);
+      expect(x).toBeLessThan(7);
+      seen.add(x);
+    }
+    expect(seen.size).toBe(7);
+  });
+
+  it('real games use secure randomness: no seed, and different decks each time', () => {
+    const players = [{ id: 'A', name: 'A' }];
+    const a = createGame(players, {});
+    const b = createGame(players, {});
+    expect(a.seed).toBeNull();
+    const order = (s: GameState) => [...s.players[0]!.line, ...s.deck].map((c) => c.id).join(',');
+    expect(order(a)).not.toBe(order(b));
+    expect(a.deck.length + a.players[0]!.line.length + a.discard.length).toBeLessThanOrEqual(DECK_SIZE);
   });
 });
 

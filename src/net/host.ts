@@ -1,6 +1,5 @@
 import { botAction } from '../engine/bot';
 import { advance, apply, createGame, EngineError, MAX_PLAYERS, type GameAction, type GameState } from '../engine/game';
-import { randomSeed } from '../engine/rng';
 import { publicView } from '../engine/view';
 import { cleanName, REACTIONS, type RoomView, type ToClient, type ToHost } from './protocol';
 
@@ -93,7 +92,7 @@ export class HostRoom {
   start() {
     if (this.game && this.game.phase !== 'gameOver') return;
     const dealer = Math.floor(Math.random() * this.members.length);
-    this.game = createGame(this.members, { seed: randomSeed(), dealer });
+    this.game = createGame(this.members, { dealer });
     this.changed();
   }
 

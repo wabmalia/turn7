@@ -9,7 +9,8 @@ everyone else joins with a 5-letter code or invite link.
 - **Host-authoritative.** The host's tab runs the rules engine
   (`src/engine`), owns the shuffled deck and validates every move.
   Players send intents (hit, stay, pick a target) and receive the public
-  state. The deck order and RNG seed never leave the host.
+  state. The deck order never leaves the host, and shuffles use the
+  browser's cryptographically secure random source (`crypto.getRandomValues`).
 - **PeerJS for the handshake.** The room code maps to a PeerJS peer id
   on the free public broker (`0.peerjs.com`). After the WebRTC handshake
   all traffic is direct browser to browser.

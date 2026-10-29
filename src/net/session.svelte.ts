@@ -1,6 +1,7 @@
-import { Peer, type DataConnection } from 'peerjs';
+import { Peer, type DataConnection, type PeerOptions } from 'peerjs';
 import type { GameAction } from '../engine/game';
 import { HostRoom, type HostSnapshot } from './host';
+import { iceServers } from './relay';
 import {
   cleanName,
   newRoomCode,
@@ -47,6 +48,12 @@ function tabId(): string {
   return id;
 }
 
+// Relay servers when the turn-relay Worker answers, else PeerJS's defaults.
+async function peerOptions(): Promise<PeerOptions> {
+  const servers = await iceServers();
+  return servers ? { config: { iceServers: servers } } : {};
+}
+
 const snapKey = (code: string) => `turn7.host.${code}`;
 
 export function savedHost(code: string): HostSnapshot | null {
@@ -76,6 +83,8 @@ class Session {
   private host: HostRoom | null = null;
   private conn: DataConnection | null = null;
   private retry: ReturnType<typeof setTimeout> | undefined;
+  /** Bumped on teardown, so a peer still being set up knows it's stale. */
+  private gen = 0;
   private reactionKey = 0;
   private toastTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -111,8 +120,11 @@ class Session {
     this.openHostPeer(code, !saved, 0);
   }
 
-  private openHostPeer(code: string, fresh: boolean, attempt: number) {
-    const peer = new Peer(PEER_PREFIX + code);
+  private async openHostPeer(code: string, fresh: boolean, attempt: number) {
+    const gen = this.gen;
+    const options = await peerOptions();
+    if (gen !== this.gen) return; // left or restarted while waiting
+    const peer = new Peer(PEER_PREFIX + code, options);
     this.peer = peer;
     peer.on('open', () => {
       this.status = 'room';
@@ -174,7 +186,14 @@ class Session {
     this.status = 'connecting';
     this.message = `Looking for room ${code}…`;
     store.set(sessionStorage, 'turn7.joined', code);
-    const peer = new Peer();
+    void this.openGuestPeer(code);
+  }
+
+  private async openGuestPeer(code: string) {
+    const gen = this.gen;
+    const options = await peerOptions();
+    if (gen !== this.gen) return;
+    const peer = new Peer(options);
     this.peer = peer;
     peer.on('open', () => this.connectToHost());
     peer.on('disconnected', () => {
@@ -263,6 +282,7 @@ class Session {
   }
 
   private teardown() {
+    this.gen++;
     clearTimeout(this.retry);
     this.host?.dispose();
     this.host = null;

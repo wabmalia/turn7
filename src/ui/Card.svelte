@@ -6,12 +6,15 @@
     selectable = false,
     selected = false,
     small = false,
+    fresh = false,
     onpick,
   }: {
     card: Card;
     selectable?: boolean;
     selected?: boolean;
     small?: boolean;
+    /** The last card into its line: it glows. */
+    fresh?: boolean;
     onpick?: () => void;
   } = $props();
 
@@ -49,6 +52,7 @@
   class:small
   class:selectable
   class:selected
+  class:fresh
   disabled={!selectable}
   aria-pressed={selectable ? selected : undefined}
   aria-label={cardLabel(card)}
@@ -102,6 +106,9 @@
     letter-spacing: 0.04em;
     text-align: center;
     padding: 0 2px;
+  }
+  .fresh {
+    box-shadow: 0 0 0 2px var(--gold), 0 0 14px 2px color-mix(in srgb, var(--gold) 70%, transparent);
   }
   .selectable {
     cursor: pointer;

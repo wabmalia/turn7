@@ -1,5 +1,6 @@
 <script lang="ts">
-  import type { Card as CardT, CardId } from '../engine/cards';
+  import { untrack } from 'svelte';
+  import type { Card as CardT, CardId, NumCard } from '../engine/cards';
   import type { Player } from '../engine/game';
   import { scorePlayer } from '../engine/score';
   import type { Reaction } from '../net/session.svelte';
@@ -35,9 +36,30 @@
     onpick?: (id: CardId) => void;
   } = $props();
 
-  const nums = $derived(player.line.filter((c) => c.kind === 'num'));
+  // Low to high, whatever order they came in.
+  const nums = $derived(
+    player.line.filter((c): c is NumCard => c.kind === 'num').sort((a, b) => a.value - b.value),
+  );
   const mods = $derived(player.line.filter((c) => c.kind === 'mod'));
+  // Same-value number cards share a slot: only a Lucky 13 pair can do that.
+  const stacks = $derived.by(() => {
+    const byValue = new Map<number, NumCard[]>();
+    for (const c of nums) byValue.set(c.value, [...(byValue.get(c.value) ?? []), c]);
+    return [...byValue];
+  });
   const live = $derived(scorePlayer(player, flip7).score);
+
+  // The last card into the line, lit until the next one arrives. The line is
+  // in arrival order, so in a stacked pair it's always the one on top.
+  let latest = $state<CardId | null>(null);
+  let seen = new Set<CardId>();
+  $effect(() => {
+    const ids = player.line.map((c) => c.id);
+    const fresh = ids.filter((id) => !seen.has(id));
+    if (fresh.length) latest = fresh.at(-1)!;
+    else if (!ids.includes(untrack(() => latest) ?? -1)) latest = null;
+    seen = new Set(ids);
+  });
 </script>
 
 <section class="area panel {player.status}" class:turn={isTurn} class:me={isMe} aria-label="{player.name}'s line">
@@ -60,13 +82,18 @@
   {#if mods.length}
     <div class="row mods">
       {#each mods as c (c.id)}
-        <Card small card={c} selectable={selectable.has(c.id)} selected={selected.includes(c.id)} onpick={() => onpick?.(c.id)} />
+        <Card small card={c} fresh={c.id === latest} selectable={selectable.has(c.id)} selected={selected.includes(c.id)} onpick={() => onpick?.(c.id)} />
       {/each}
     </div>
   {/if}
   <div class="row">
-    {#each nums as c (c.id)}
-      <Card card={c} selectable={selectable.has(c.id)} selected={selected.includes(c.id)} onpick={() => onpick?.(c.id)} />
+    {#each stacks as [value, stack] (value)}
+      <!-- A stack spreads out while one of its cards can be picked. -->
+      <div class="stack" class:open={stack.some((c) => selectable.has(c.id))}>
+        {#each stack as c (c.id)}
+          <Card card={c} fresh={c.id === latest} selectable={selectable.has(c.id)} selected={selected.includes(c.id)} onpick={() => onpick?.(c.id)} />
+        {/each}
+      </div>
     {:else}
       <p class="empty muted">No cards</p>
     {/each}
@@ -178,6 +205,17 @@
     gap: 0.35rem;
     min-height: 74px;
     align-items: center;
+  }
+  .stack {
+    display: flex;
+    align-items: center;
+  }
+  .stack > :global(.card + .card) {
+    margin-left: -38px;
+    transition: margin-left 150ms ease;
+  }
+  .stack.open > :global(.card + .card) {
+    margin-left: 0.35rem;
   }
   .mods,
   .aside {

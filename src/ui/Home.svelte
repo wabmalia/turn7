@@ -15,6 +15,11 @@
     session.setName(name);
     session.hostRoom();
   }
+  function solo(e: Event) {
+    e.preventDefault();
+    session.setName(name);
+    session.playSolo();
+  }
   function join(e: Event) {
     e.preventDefault();
     session.setName(name);
@@ -57,9 +62,17 @@
       <p class="error" role="alert">{session.message}</p>
     {/if}
 
-    <form class="panel" onsubmit={join}>
-      <h2>Join a room</h2>
-      <div class="row">
+    {#if !linkCode}
+      <form class="panel" onsubmit={solo}>
+        <h2>Play solo</h2>
+        <p class="muted">Just you: how many rounds does it take you to reach 200?</p>
+        <button class="primary">Play solo</button>
+      </form>
+    {/if}
+
+    <section class="panel">
+      <h2>{linkCode ? 'Join a room' : 'Multiplayer'}</h2>
+      <form class="row" onsubmit={join}>
         <input
           aria-label="Room code"
           bind:value={code}
@@ -70,16 +83,15 @@
           class="code"
         />
         <button class="primary" disabled={!name.trim() || normalizeCode(code).length !== 5}>Join</button>
-      </div>
-    </form>
-
-    {#if !linkCode}
-      <form class="panel" onsubmit={create}>
-        <h2>Host a game</h2>
-        <p class="muted">Your browser runs the game. Keep this tab open while you play.</p>
-        <button class="primary" disabled={!name.trim()}>Create room</button>
       </form>
-    {/if}
+      {#if !linkCode}
+        <p class="or muted">or host a room</p>
+        <form class="host" onsubmit={create}>
+          <p class="muted">Your browser runs the game. Keep this tab open while you play.</p>
+          <button class="primary" disabled={!name.trim()}>Create room</button>
+        </form>
+      {/if}
+    </section>
   {/if}
 
   <button class="ghost rules" onclick={() => (showRules = true)}>How to play</button>
@@ -118,8 +130,30 @@
     filter: drop-shadow(0 2px 3px rgb(0 0 0 / 0.25));
   }
   h2 {
-    margin: 0 0 0.5rem;
+    margin: 0;
     font-size: 1.1rem;
+  }
+  .panel p {
+    margin: 0;
+  }
+  .host {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  /* A rule either side: "—— or host a room ——". */
+  .or {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0.5rem 0 0;
+    font-size: 0.85rem;
+  }
+  .or::before,
+  .or::after {
+    content: '';
+    flex: 1;
+    border-top: 1px solid var(--border);
   }
   .panel {
     padding: 1rem;

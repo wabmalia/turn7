@@ -57,12 +57,7 @@
   </section>
 
   {#if isHost}
-    <button class="primary big" onclick={() => session.start()}>
-      {room.members.length === 1 ? 'Start solo game' : 'Start game'}
-    </button>
-    {#if room.members.length === 1}
-      <p class="muted center">Solo: how many rounds does it take you to reach 200?</p>
-    {/if}
+    <button class="primary big" onclick={() => session.start()}>Start game</button>
   {:else}
     <p class="muted center">Waiting for the host to start…</p>
     {#if !session.linked}<p class="center warn">Reconnecting to host…</p>{/if}

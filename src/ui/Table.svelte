@@ -116,12 +116,12 @@
 
 <div class="table">
   <header class="bar">
-    <span class="code" title="Room code">{room.code}</span>
+    {#if !session.solo}<span class="code" title="Room code">{room.code}</span>{/if}
     <span class="muted">Round {g.round}</span>
     <span class="muted deck" title="Cards left in the deck">🂠 {g.deckCount}</span>
     <span class="spacer"></span>
     <button class="ghost" onclick={() => (showRules = true)}>Rules</button>
-    <button class="ghost" onclick={() => confirm(session.role === 'host' ? 'Close the room for everyone?' : 'Leave the game?') && session.leave()}>Leave</button>
+    <button class="ghost" onclick={() => confirm(session.solo ? 'Leave this game?' : session.role === 'host' ? 'Close the room for everyone?' : 'Leave the game?') && session.leave()}>Leave</button>
   </header>
 
   {#if !session.linked}
@@ -240,7 +240,9 @@
       </aside>
     </div>
 
-    {#if isPlayer}
+    {#if session.solo}
+      <!-- No one to react to. -->
+    {:else if isPlayer}
       <div class="emojis" role="group" aria-label="Reactions">
         {#each REACTIONS as e (e)}
           <button class="ghost" onclick={() => session.react(e)} aria-label="React {e}">{e}</button>

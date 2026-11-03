@@ -55,6 +55,8 @@ async function peerOptions(): Promise<PeerOptions> {
 }
 
 const snapKey = (code: string) => `turn7.host.${code}`;
+// A solo game is saved like a hosted room, under this code.
+const SOLO = 'SOLO';
 
 export function savedHost(code: string): HostSnapshot | null {
   const raw = store.get(localStorage, snapKey(code));
@@ -78,6 +80,8 @@ class Session {
   reactions = $state<Reaction[]>([]);
   toast = $state<string | null>(null);
   name = $state(store.get(localStorage, 'turn7.name') ?? '');
+  /** Playing alone: the host room runs with no connection at all. */
+  solo = $state(false);
 
   private peer: Peer | null = null;
   private host: HostRoom | null = null;
@@ -97,27 +101,41 @@ class Session {
 
   /** Create a room, or resume one this browser was hosting (after a refresh). */
   hostRoom(resumeCode?: string) {
+    const saved = this.openRoom(resumeCode ?? null, newRoomCode(), 'Host');
+    this.status = 'connecting';
+    this.message = saved ? 'Reopening your room…' : 'Creating room…';
+    this.openHostPeer(this.code, !saved, 0);
+  }
+
+  /** Play alone, straight into a game; or carry on after a refresh. */
+  playSolo(resume = false) {
+    const saved = this.openRoom(resume ? SOLO : null, SOLO, 'You');
+    this.solo = true;
+    this.status = 'room';
+    location.hash = '#/solo';
+    if (!saved) this.host!.start();
+  }
+
+  // The host room itself, new or from its saved snapshot. True if resumed.
+  private openRoom(resumeCode: string | null, newCode: string, fallbackName: string): boolean {
     this.teardown();
     const saved = resumeCode ? savedHost(resumeCode) : null;
-    const code = saved?.code ?? newRoomCode();
     const snap: HostSnapshot = saved ?? {
-      code,
+      code: newCode,
       hostId: this.me,
-      members: [{ id: this.me, name: this.name || 'Host' }],
+      members: [{ id: this.me, name: this.name || fallbackName }],
       game: null,
     };
     this.me = snap.hostId;
     this.role = 'host';
-    this.code = code;
-    this.status = 'connecting';
-    this.message = saved ? 'Reopening your room…' : 'Creating room…';
+    this.code = snap.code;
     this.host = new HostRoom(snap, {
       change: (room) => (this.room = room),
       react: (from, emoji) => this.addReaction(from, emoji),
       persist: (s) => store.set(localStorage, snapKey(s.code), JSON.stringify(s)),
     });
     this.room = this.host.view();
-    this.openHostPeer(code, !saved, 0);
+    return !!saved;
   }
 
   private async openHostPeer(code: string, fresh: boolean, attempt: number) {
@@ -291,6 +309,7 @@ class Session {
     this.peer = null;
     this.room = null;
     this.role = null;
+    this.solo = false;
     this.linked = true;
     this.me = tabId();
   }
@@ -317,7 +336,8 @@ class Session {
   restore() {
     const [, kind, raw] = location.hash.split('/');
     const code = (raw ?? '').toUpperCase();
-    if (kind === 'host' && code && savedHost(code)) this.hostRoom(code);
+    if (kind === 'solo' && savedHost(SOLO)) this.playSolo(true);
+    else if (kind === 'host' && code && savedHost(code)) this.hostRoom(code);
     else if (kind === 'join' && code && store.get(sessionStorage, 'turn7.joined') === code) this.joinRoom(code);
   }
 }

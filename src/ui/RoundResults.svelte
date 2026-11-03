@@ -43,7 +43,9 @@
   </div>
 
   {#if over}
-    {#if session.role === 'host'}
+    {#if session.solo}
+      <button class="primary" onclick={() => session.start()}>Play again</button>
+    {:else if session.role === 'host'}
       <button class="primary" onclick={() => session.backToLobby()}>Back to lobby</button>
     {:else}
       <p class="muted">Waiting for the host…</p>

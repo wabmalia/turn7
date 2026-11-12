@@ -6,7 +6,19 @@
   import Table from './ui/Table.svelte';
 
   onMount(() => session.restore());
+
+  // An invite link opened in a tab that's playing solo: back to the home
+  // screen, which offers the room. Never out of a room with others, which a
+  // click on a link shouldn't end.
+  function linkChanged() {
+    const code = location.hash.startsWith('#/join/') ? location.hash.slice(7) : '';
+    if (!code || session.status !== 'room' || !session.solo) return;
+    session.leave();
+    location.hash = `#/join/${code}`;
+  }
 </script>
+
+<svelte:window onhashchange={linkChanged} />
 
 {#if session.status === 'room' && session.room}
   {#if session.room.game}

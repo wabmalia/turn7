@@ -3,9 +3,17 @@
   import { NAME_MAX, normalizeCode } from '../net/protocol';
   import RulesSheet from './RulesSheet.svelte';
 
-  const linkCode = location.hash.startsWith('#/join/') ? normalizeCode(location.hash.slice(7)) : '';
+  const codeInLink = () => (location.hash.startsWith('#/join/') ? normalizeCode(location.hash.slice(7)) : '');
+  let linkCode = $state(codeInLink());
   let name = $state(session.name);
-  let code = $state(linkCode);
+  let code = $state(codeInLink());
+
+  // An invite link opened in a tab already on this screen: the browser only
+  // changes the hash, without reloading, so pick the code up now.
+  function linkChanged() {
+    linkCode = codeInLink();
+    if (linkCode) code = linkCode;
+  }
   let showRules = $state(false);
 
   const busy = $derived(session.status === 'connecting');
@@ -26,6 +34,8 @@
     session.joinRoom(normalizeCode(code));
   }
 </script>
+
+<svelte:window onhashchange={linkChanged} />
 
 <main>
   <header>

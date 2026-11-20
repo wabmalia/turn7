@@ -14,6 +14,12 @@ everyone else joins with a 5-letter code or invite link.
 - **PeerJS for the handshake.** The room code maps to a PeerJS peer id
   on the free public broker (`0.peerjs.com`). After the WebRTC handshake
   all traffic is direct browser to browser.
+- **Connections are courier's.** Hosting, joining, heartbeats, reconnects,
+  pings and the TURN relay come from
+  [courier](https://github.com/wabmalia/courier) (`@wabmalia/courier`, a
+  private repo shared by the arcade games). A player whose connection goes
+  silent shows as away within about 8 s; their browser keeps reconnecting
+  until it gets back in.
 - **Reconnects.** Players keep their seat across refreshes (per-tab id in
   `sessionStorage`). The host's room is saved in `localStorage`, so a
   refreshed host tab reopens the same room. If a player is disconnected
@@ -42,8 +48,14 @@ Pushing to `main` runs `.github/workflows/deploy.yml`, which tests, builds
 and publishes `dist/` to GitHub Pages. In the repo settings, set
 **Pages → Source** to **GitHub Actions** once.
 
+courier is private, so `npm ci` reads it with this repo's read-only deploy
+key: the `COURIER_DEPLOY_KEY` Actions secret, whose public half is a deploy
+key on wabmalia/courier. To pick up a new courier version, bump its tag in
+`package.json` and `npm install`.
+
 ## Known limits
 
 - If the host closes their tab, the game pauses until they reopen it.
 - Some strict corporate or mobile networks block direct WebRTC
-  connections. That needs a TURN relay, which isn't configured yet.
+  connections. On arcade.wabmalia.eu those go through the TURN relay;
+  locally and elsewhere, direct connections only.
